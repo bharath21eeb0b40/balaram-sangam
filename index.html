@@ -80,7 +80,7 @@ body.viewer .adm{display:none!important}
 <div class="card"><div class="section-title">ఎంట్రీలు</div><div id="entries"></div></div>
 </section>
 <section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
-<section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
+<section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>Member Password Reset (Admin)</h3><p class="muted">Existing passwords cannot be viewed. Enter the member's username and set a new one.</p><input id="rpu" placeholder="Member username (Login ID)" autocapitalize="none"><div class="pw"><input id="rpn" type="password" placeholder="New password (min 8)"><button type="button" class="eye" onclick="eye('rpn')" title="Show">&#128065;</button></div><button onclick="adminReset()">Set new password</button><p id="rpm" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
 </div></div>
 <script>
 const URL_="https://dukeiorbexilqdahottt.supabase.co",KEY="sb_publishable_rj75FgUap1WQqYWJO4xSGw_jEX-KV_Z",DOM="@sangam.example.com";
@@ -92,7 +92,7 @@ const el=id=>document.getElementById(id);
 
 async function load(){
   const [pr,en,st]=await Promise.all([sb.from("profiles").select("*").order("name"),sb.from("entries").select("*").order("entry_date").limit(5000),sb.from("settings").select("*")]);
-  S.m=(pr.data||[]).filter(p=>p.role==="viewer").map(p=>({id:p.id,n:p.name,p:p.phone||"",a:p.active}));
+  S.m=(pr.data||[]).filter(p=>p.role==="viewer").map(p=>({id:p.id,n:p.name,p:p.phone||"",a:p.active,u:p.login_id}));
   S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,i:+r.interest,f:+r.fine}));
   S.rate=+((st.data||[]).find(x=>x.k==="rate")||{}).v||0;
 }
@@ -107,9 +107,9 @@ function enter(){el("err").textContent="";el("login").classList.add("hidden");el
 function eye(id){const i=el(id),b=i.parentNode.querySelector(".eye"),show=i.type==="password";i.type=show?"text":"password";b.textContent=show?"\u{1F648}":"\u{1F441}";b.title=show?"Hide":"Show"}
 async function login(){
   const u=el("uid").value.trim().toLowerCase(),p=el("pwd").value;
-  if(u.includes("@")){el("err").textContent="Email కాదు, User ID మాత్రమే ఇవ్వండి (ఉదా: admin)";return}
+  
   if(!CFG_OK){el("err").textContent="Supabase URL/Key not set in index.html";return}
-  const {error}=await sb.auth.signInWithPassword({email:u+DOM,password:p});
+  const {error}=await sb.auth.signInWithPassword({email:u.includes("@")?u:u+DOM,password:p});
   if(error){el("err").textContent="User ID లేదా Password తప్పు";return}
   await boot();
 }
@@ -218,6 +218,7 @@ async function delEntry(i){if(!confirm("ఈ ఎంట్రీని తొల�
 async function delMember(id){const m=S.m.find(x=>x.id==id);if(!m)return;
   if(!confirm(m.a?"ఈ సభ్యుడిని నిలిపివేయాలా? Login ఆగిపోతుంది, లెక్కలు అలాగే ఉంటాయి.":"ఈ సభ్యుడిని మళ్లీ ఆన్ చేయాలా?"))return;
   const j=await fn({action:"active",id,active:!m.a});if(j.error)return;await load();render();page("members")}
+async function adminReset(){const m=el("rpm"),u=el("rpu").value.trim().toLowerCase(),p=el("rpn").value;if(!ADM){m.textContent="Admin only";return}const t=S.m.find(x=>x.u===u);if(!t){m.textContent="No member with that username";return}if(p.length<8){m.textContent="Password must be at least 8 characters";return}const j=await fn({action:"reset",id:t.id,password:p});if(!j.error){m.textContent="Password updated for "+t.n;el("rpu").value=el("rpn").value="";}}
 async function rp(){const p=prompt("కొత్త తాత్కాలిక Password (కనీసం 8 అక్షరాలు)");if(p){const j=await fn({action:"reset",id:curM,password:p});if(!j.error)alert("Password మార్చబడింది")}}
 function backup(){
   const nm=id=>((S.m.find(x=>x.id==id)||{}).n||"").replace(/,/g," ");
