@@ -84,7 +84,8 @@ body.viewer .adm{display:none!important}
 </div></div>
 <script>
 const URL_="PASTE_SUPABASE_URL",KEY="PASTE_ANON_OR_PUBLISHABLE_KEY",DOM="@sangam.example.com";
-const sb=supabase.createClient(URL_,KEY);
+const CFG_OK=!/PASTE_/.test(URL_+KEY);
+const sb=CFG_OK?supabase.createClient(URL_,KEY):null;
 let S={m:[],e:[],rate:0},editingIndex=-1,me=null,ADM=false,curM=null;
 const M=x=>"₹"+Number(x||0).toLocaleString("en-IN");
 const el=id=>document.getElementById(id);
@@ -98,14 +99,16 @@ async function load(){
 async function boot(){
   const {data:{session}}=await sb.auth.getSession();if(!session)return;
   const {data:p}=await sb.from("profiles").select("*").eq("id",session.user.id).single();
-  if(!p||!p.active){await sb.auth.signOut();el("err").textContent="Account నిలిపివేయబడింది";return}
+  if(!p){await sb.auth.signOut();el("err").textContent="Login OK, but no row in profiles table for this user (run the profiles SQL)";return}
+  if(!p.active){await sb.auth.signOut();el("err").textContent="Account నిలిపివేయబడింది";return}
   me=p;ADM=p.role==="admin";await load();enter();
 }
 function enter(){el("err").textContent="";el("login").classList.add("hidden");el("app").classList.remove("hidden");document.body.classList.toggle("viewer",!ADM);render()}
-function eye(id){const i=el(id);i.type=i.type==="password"?"text":"password"}
+function eye(id){const i=el(id),b=i.parentNode.querySelector(".eye"),show=i.type==="password";i.type=show?"text":"password";b.textContent=show?"\u{1F648}":"\u{1F441}";b.title=show?"Hide":"Show"}
 async function login(){
   const u=el("uid").value.trim().toLowerCase(),p=el("pwd").value;
   if(u.includes("@")){el("err").textContent="Email కాదు, User ID మాత్రమే ఇవ్వండి (ఉదా: admin)";return}
+  if(!CFG_OK){el("err").textContent="Supabase URL/Key not set in index.html";return}
   const {error}=await sb.auth.signInWithPassword({email:u+DOM,password:p});
   if(error){el("err").textContent="User ID లేదా Password తప్పు";return}
   await boot();
