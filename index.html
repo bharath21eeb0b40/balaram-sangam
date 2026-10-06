@@ -41,8 +41,9 @@ h2,h3{margin-top:4px}.section-title{font-size:19px;font-weight:800;margin-bottom
 
 .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;overflow:auto;padding:20px}.receipt-box{max-width:430px;margin:20px auto;background:#fff;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25)}.receipt-head{text-align:center;border-bottom:1px dashed #999;padding-bottom:10px;margin-bottom:10px}.receipt-head h2{margin:0;color:#146c3a}.receipt-table{width:100%;border-collapse:collapse}.receipt-table td{padding:9px;border-bottom:1px dotted #bbb}.receipt-table td:last-child{text-align:right;font-weight:700}.receipt-actions{display:flex;gap:8px;justify-content:center;margin-top:18px}@media print{body>*:not(#receiptModal){display:none!important}.receipt-overlay{position:static;background:#fff;padding:0}.receipt-box{box-shadow:none;margin:0;max-width:none}}
 body.viewer .adm{display:none!important}
+.pw{position:relative}.pw input{padding-right:48px}.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto!important;margin:0!important;padding:6px 10px!important;background:none!important;border:0!important;color:#555!important;font-size:18px!important}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<div id="login" class="card login"><h2>బలరాం సంగం</h2><p class="muted">Login లేకుండా లెక్కలు కనిపించవు</p><input id="uid" placeholder="User ID"><input id="pwd" type="password" placeholder="Password"><button onclick="login()">Login</button><p id="err"></p><p id="firstMsg" class="muted"></p></div>
+<div id="login" class="card login"><h2>బలరాం సంగం</h2><p class="muted">Login లేకుండా లెక్కలు కనిపించవు</p><input id="uid" placeholder="User ID"><div class="pw"><input id="pwd" type="password" placeholder="Password"><button type="button" class="eye" onclick="eye('pwd')" title="Show / hide">&#128065;</button></div><button onclick="login()">Login</button><p id="err"></p><p id="firstMsg" class="muted"></p></div>
 <div id="app" class="hidden"><div class="top">బలరాం సంగం</div><div class="wrap">
 <div class="nav"><button onclick="page('dash')">Dashboard</button><button onclick="page('members')">Members</button><button onclick="page('monthly')">నెలవారీ లెక్కలు</button><button onclick="page('settings')">Settings</button></div>
 <section id="dash" class="page"><div id="bk" class="card" style="display:none;background:#fff4e5;border-color:#f0c36d">⚠️ 7 రోజులుగా Backup తీయలేదు. Settings → Backup Download నొక్కండి. ఫోన్ పోతే/బ్రౌజర్ clear చేస్తే లెక్కలు పోతాయి.</div>
@@ -79,10 +80,10 @@ body.viewer .adm{display:none!important}
 <div class="card"><div class="section-title">ఎంట్రీలు</div><div id="entries"></div></div>
 </section>
 <section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
-<section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
+<section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
 </div></div>
 <script>
-const URL_="https://dukeiorbexilqdahottt.supabase.co",KEY="sb_publishable_rj75FgUap1WQqYWJO4xSGw_jEX-KV_Z",DOM="@sangam.example.com";
+const URL_="PASTE_SUPABASE_URL",KEY="PASTE_ANON_OR_PUBLISHABLE_KEY",DOM="@sangam.example.com";
 const sb=supabase.createClient(URL_,KEY);
 let S={m:[],e:[],rate:0},editingIndex=-1,me=null,ADM=false,curM=null;
 const M=x=>"₹"+Number(x||0).toLocaleString("en-IN");
@@ -101,8 +102,10 @@ async function boot(){
   me=p;ADM=p.role==="admin";await load();enter();
 }
 function enter(){el("err").textContent="";el("login").classList.add("hidden");el("app").classList.remove("hidden");document.body.classList.toggle("viewer",!ADM);render()}
+function eye(id){const i=el(id);i.type=i.type==="password"?"text":"password"}
 async function login(){
   const u=el("uid").value.trim().toLowerCase(),p=el("pwd").value;
+  if(u.includes("@")){el("err").textContent="Email కాదు, User ID మాత్రమే ఇవ్వండి (ఉదా: admin)";return}
   const {error}=await sb.auth.signInWithPassword({email:u+DOM,password:p});
   if(error){el("err").textContent="User ID లేదా Password తప్పు";return}
   await boot();
