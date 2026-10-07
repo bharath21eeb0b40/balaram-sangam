@@ -57,7 +57,7 @@ body.viewer .adm{display:none!important}
 </div>
 <div class="card"><div class="section-title">సభ్యుల సంఖ్య</div><b id="mc">0</b></div>
 </section>
-<section id="members" class="page hidden"><div class="card adm"><h3>సభ్యుడిని చేర్చండి</h3><input id="mn" placeholder="సభ్యుడి పేరు"><input id="mp" placeholder="ఫోన్ నంబర్"><input id="mid" placeholder="Login ID (a-z, 0-9)"><input id="mpw" placeholder="తాత్కాలిక Password (కనీసం 8)"><button id="mbtn" onclick="addMember()">సేవ్</button><button id="mcancel" class="hidden" style="background:#667085" onclick="cancelMember()">Cancel</button></div><div id="memberList"></div></section>
+<section id="members" class="page hidden"><div class="card adm"><h3>సభ్యుడిని చేర్చండి</h3><input id="mn" placeholder="సభ్యుడి పేరు"><input id="mp" placeholder="ఫోన్ నంబర్"><input id="mid" placeholder="Login ID (a-z, 0-9)"><input id="mpw" placeholder="తాత్కాలిక Password (కనీసం 8)"><button id="mbtn" onclick="addMember()">సేవ్</button><button id="mcancel" class="hidden" style="background:#667085" onclick="cancelMember()">Cancel</button></div><div id="selfCard" class="card hidden"><h3>నా వివరాలు</h3><input id="sn" placeholder="పేరు"><input id="sp" placeholder="ఫోన్ నంబర్"><button onclick="saveSelf()">Update</button><button style="background:#667085" onclick="el('selfCard').classList.add('hidden')">Cancel</button></div><div id="memberList"></div></section>
 <section id="monthly" class="page hidden">
 <div class="card adm">
 <div class="section-title">నెలవారీ లెక్క</div>
@@ -147,7 +147,10 @@ async function addMember(){
   const j=await fn({action:"create",login_id:id,name:n,phone:el("mp").value.trim(),password:el("mpw").value});if(j.error)return;
   ["mn","mp","mid","mpw"].forEach(x=>el(x).value="");await load();render();
 }
-function editMember(id){const m=S.m.find(x=>x.id==id);if(!m)return;editMem=id;el("mn").value=m.n;el("mp").value=m.p;el("mid").value=m.u||"";el("mid").disabled=true;el("mpw").classList.add("hidden");el("mbtn").textContent="Update";el("mcancel").classList.remove("hidden");el("mn").scrollIntoView({behavior:"smooth"});el("mn").focus()}
+function editMember(id){const m=S.m.find(x=>x.id==id);if(!m)return;
+  if(!ADM){el("sn").value=m.n;el("sp").value=m.p;el("selfCard").classList.remove("hidden");el("sn").scrollIntoView({behavior:"smooth"});el("sn").focus();return}
+  editMem=id;el("mn").value=m.n;el("mp").value=m.p;el("mid").value=m.u||"";el("mid").disabled=true;el("mpw").classList.add("hidden");el("mbtn").textContent="Update";el("mcancel").classList.remove("hidden");el("mn").scrollIntoView({behavior:"smooth"});el("mn").focus()}
+async function saveSelf(){const n=el("sn").value.trim();if(!n)return alert("పేరు ఇవ్వండి");const j=await fn({action:"self_update",name:n,phone:el("sp").value.trim()});if(j.error)return;el("selfCard").classList.add("hidden");await load();render()}
 function cancelMember(){editMem=null;["mn","mp","mid","mpw"].forEach(x=>el(x).value="");el("mid").disabled=false;el("mpw").classList.remove("hidden");el("mbtn").textContent="సేవ్";el("mcancel").classList.add("hidden")}
 function members(){
   el("memberList").innerHTML=S.m.map(m=>`<div class="card" onclick="personal('${m.id}')"><b>${esc(m.n)}</b>${m.a?"":" [నిలిపివేయబడింది]"}<br><span class="muted">${esc(m.p||"ఫోన్ లేదు")}</span><br><span class="badge">Personal Page</span> <button style="width:auto;padding:5px 12px;margin:0 0 0 8px" onclick="event.stopPropagation();editMember(\'${m.id}\')">Edit</button></div>`).join("")||"<div class='card'>సభ్యులు లేరు</div>";
