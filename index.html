@@ -57,7 +57,7 @@ body.viewer .adm{display:none!important}
 </div>
 <div class="card"><div class="section-title">సభ్యుల సంఖ్య</div><b id="mc">0</b></div>
 </section>
-<section id="members" class="page hidden"><div class="card adm"><h3>సభ్యుడిని చేర్చండి</h3><input id="mn" placeholder="సభ్యుడి పేరు"><input id="mp" placeholder="ఫోన్ నంబర్"><input id="mid" placeholder="Login ID (a-z, 0-9)"><input id="mpw" placeholder="తాత్కాలిక Password (కనీసం 8)"><button onclick="addMember()">సేవ్</button></div><div id="memberList"></div></section>
+<section id="members" class="page hidden"><div class="card adm"><h3>సభ్యుడిని చేర్చండి</h3><input id="mn" placeholder="సభ్యుడి పేరు"><input id="mp" placeholder="ఫోన్ నంబర్"><input id="mid" placeholder="Login ID (a-z, 0-9)"><input id="mpw" placeholder="తాత్కాలిక Password (కనీసం 8)"><button id="mbtn" onclick="addMember()">సేవ్</button><button id="mcancel" class="hidden" style="background:#667085" onclick="cancelMember()">Cancel</button></div><div id="memberList"></div></section>
 <section id="monthly" class="page hidden">
 <div class="card adm">
 <div class="section-title">నెలవారీ లెక్క</div>
@@ -93,7 +93,7 @@ const el=id=>document.getElementById(id);
 async function load(){
   const [pr,en,st]=await Promise.all([sb.from("profiles").select("*").order("name"),sb.from("entries").select("*").order("entry_date").limit(5000),sb.from("settings").select("*")]);
   S.m=(pr.data||[]).filter(p=>p.role==="viewer").map(p=>({id:p.id,n:p.name,p:p.phone||"",a:p.active,u:p.login_id}));
-  S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,i:+r.interest,f:+r.fine}));
+  S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,ca:r.created_at,ua:r.updated_at,ec:r.edit_count||0,i:+r.interest,f:+r.fine}));
   S.rate=+((st.data||[]).find(x=>x.k==="rate")||{}).v||0;
 }
 async function boot(){
@@ -114,9 +114,14 @@ async function login(){
   await boot();
 }
 async function logout(){await sb.auth.signOut();location.reload()}
-async function fn(b){const {data:{session}}=await sb.auth.getSession();
+async function fn(b,retry){
+  let {data:{session}}=await sb.auth.getSession();
+  if(!session||session.expires_at*1000-Date.now()<60000){const r=await sb.auth.refreshSession();session=r.data.session}
+  if(!session){alert("Session expired. Please log in again.");return{error:"no session"}}
   const r=await fetch(URL_+"/functions/v1/member-admin",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:KEY},body:JSON.stringify(b)});
-  const j=await r.json();if(j.error)alert(j.error);return j}
+  if(r.status===401&&!retry){await sb.auth.refreshSession();return fn(b,true)}
+  const j=await r.json().catch(()=>({error:"Bad response ("+r.status+")"}));
+  const msg=j.error||(r.ok?"":j.message);if(msg){alert(msg);return{error:msg}}return j}
 
 function page(id){
   document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));
@@ -132,13 +137,20 @@ function setTodayDate(){
 }
 el("date")?.addEventListener("change",function(){if(this.value)el("month").value=this.value.slice(0,7)});
 
+let editMem=null;
 async function addMember(){
-  const n=el("mn").value.trim(),id=el("mid").value.trim().toLowerCase();if(!n||!id)return alert("పేరు మరియు Login ID ఇవ్వండి");
+  const n=el("mn").value.trim(),id=el("mid").value.trim().toLowerCase();
+  if(!n)return alert("పేరు ఇవ్వండి");
+  if(editMem){const j=await fn({action:"update",id:editMem,name:n,phone:el("mp").value.trim()});if(j.error)return;cancelMember();await load();render();return}
+  if(!id)return alert("పేరు మరియు Login ID ఇవ్వండి");
+  if(!/^[a-z0-9_.-]{3,30}$/.test(id))return alert("Login ID must be 3-30 English letters/numbers (a-z, 0-9, _ . -). Telugu letters are not allowed.");
   const j=await fn({action:"create",login_id:id,name:n,phone:el("mp").value.trim(),password:el("mpw").value});if(j.error)return;
   ["mn","mp","mid","mpw"].forEach(x=>el(x).value="");await load();render();
 }
+function editMember(id){const m=S.m.find(x=>x.id==id);if(!m)return;editMem=id;el("mn").value=m.n;el("mp").value=m.p;el("mid").value=m.u||"";el("mid").disabled=true;el("mpw").classList.add("hidden");el("mbtn").textContent="Update";el("mcancel").classList.remove("hidden");el("mn").scrollIntoView({behavior:"smooth"});el("mn").focus()}
+function cancelMember(){editMem=null;["mn","mp","mid","mpw"].forEach(x=>el(x).value="");el("mid").disabled=false;el("mpw").classList.remove("hidden");el("mbtn").textContent="సేవ్";el("mcancel").classList.add("hidden")}
 function members(){
-  el("memberList").innerHTML=S.m.map(m=>`<div class="card" onclick="personal('${m.id}')"><b>${esc(m.n)}</b>${m.a?"":" [నిలిపివేయబడింది]"}<br><span class="muted">${esc(m.p||"ఫోన్ లేదు")}</span><br><span class="badge">Personal Page</span></div>`).join("")||"<div class='card'>సభ్యులు లేరు</div>";
+  el("memberList").innerHTML=S.m.map(m=>`<div class="card" onclick="personal('${m.id}')"><b>${esc(m.n)}</b>${m.a?"":" [నిలిపివేయబడింది]"}<br><span class="muted">${esc(m.p||"ఫోన్ లేదు")}</span><br><span class="badge">Personal Page</span> <button style="width:auto;padding:5px 12px;margin:0 0 0 8px" onclick="event.stopPropagation();editMember(\'${m.id}\')">Edit</button></div>`).join("")||"<div class='card'>సభ్యులు లేరు</div>";
 }
 function select(){el("ms").innerHTML=S.m.filter(m=>m.a).map(m=>`<option value="${m.id}">${esc(m.n)}</option>`).join("")}
 
@@ -152,6 +164,7 @@ async function saveEntry(){
   if(Object.values(v).some(x=>typeof x==="number"&&x<0))return alert("విలువలు 0 లేదా ఎక్కువ ఉండాలి");
   const nm=(S.m.find(x=>x.id==member)||{}).n;
   if(!confirm("సేవ్ చేయాలా?\n\n"+nm+" | "+date+"\nపొదుపు "+M(v.savings)+"\nఅప్పు "+M(v.loan_taken)+"\nకట్టినది "+M(v.loan_paid)+"\nకాలం "+v.loan_months+" నెలలు\nమిత్తి "+M(v.interest)+"\nఫైన్ "+M(v.fine)))return;
+  if(editingIndex>=0){const o=S.e[editingIndex];if(member!=o.m||date.slice(0,7)!==o.mo)return alert("Edit cannot change member or month. Delete and add a new entry instead.")}
   let r;
   if(editingIndex>=0)r=await sb.from("entries").update(v).eq("id",S.e[editingIndex].id);
   else{v.created_by=me.id;r=await sb.from("entries").insert(v)}
@@ -167,13 +180,37 @@ function editEntry(idx){
 }
 function cancelEdit(){editingIndex=-1;el("entryBtn").textContent="లెక్క సేవ్ చేయండి";el("cancelEditBtn").classList.add("hidden");clearForm()}
 
+const T=t=>t?new Date(t).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true}):"-";
+const H={};
+async function hist(id){const {data,error}=await sb.from("audit_log").select("id,action,at,detail").in("action",["INSERT","UPDATE"]).filter("detail->>id","eq",String(id)).order("at",{ascending:false}).order("id",{ascending:false});return error?[]:data}
 function entries(){
   const rows=S.e.slice().reverse().map(e=>{
     const idx=S.e.indexOf(e),m=S.m.find(x=>x.id==e.m);if(!m)return"";
     const loan=+e.l||0,paid=+e.loanPaid||+e.lp||0,bal=Math.max(0,loan-paid);
-    return `<tr><td>${esc(m.n)}</td><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(loan)}</td><td>${M(paid)}</td><td>${M(bal)}</td><td>${ADM?'<button style="padding:7px" onclick="editEntry('+idx+')">Edit</button>':''}<button style="padding:7px;background:#667085" onclick="receipt(${idx})">రసీదు</button>${ADM?'<button class="danger" style="padding:7px" onclick="delEntry('+idx+')">తొలగించు</button>':''}</td></tr>`;
+    return `<tr><td>${esc(m.n)}</td><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(loan)}</td><td>${M(paid)}</td><td>${M(bal)}</td><td><button style="width:auto;padding:7px 12px;background:#667085" onclick="toggleEntry(${idx})" title="Details">&#9662;</button></td></tr><tr id="d${idx}" class="hidden"><td colspan="8" id="dc${idx}"></td></tr>`;
   }).join("");
   el("entries").innerHTML=rows?`<table><tr><th>సభ్యుడు</th><th>తేదీ</th><th>నెల</th><th>పొదుపు</th><th>తీసుకున్న అప్పు</th><th>అప్పు కట్టినది</th><th>మిగిలిన అప్పు</th><th>చర్య</th></tr>${rows}</table>`:"రికార్డులు లేవు";
+}
+async function toggleEntry(i){
+  const r=el("d"+i),c=el("dc"+i),e=S.e[i];
+  if(!r.classList.contains("hidden")){r.classList.add("hidden");return}
+  r.classList.remove("hidden");
+  const rc=`<button style="width:auto;padding:7px 12px;margin:4px 6px 4px 0;background:#667085" onclick="receipt(${i})">రసీదు</button>`;
+  if(!ADM){c.innerHTML=rc;return}
+  c.innerHTML="Loading...";
+  const h=await hist(e.id);H[e.id]=h;
+  const ver=h.map((x,k)=>{const d=x.detail||{};
+    return `<div style="border-top:1px solid #e3e8e5;padding:8px 0"><b>v${h.length-k}${k?"":" (Current)"}</b> &middot; ${T(x.at)} &middot; ${x.action==="INSERT"?"Created":"Edited"}<br>Savings ${M(d.savings)} &middot; Loan ${M(d.loan_taken)} &middot; Paid ${M(d.loan_paid)} &middot; ${d.loan_months??e.loanMonths} months &middot; Interest ${M(d.interest)} &middot; Fine ${M(d.fine)}${k?`<br><button style="width:auto;padding:7px 12px;margin:4px 6px 4px 0" onclick="restoreVer(${i},${x.id})">Update with this entry</button>`:""}</div>`}).join("");
+  c.innerHTML=`<div class="muted">Created ${T(e.ca)} &middot; Last updated ${T(e.ua)} &middot; Edited ${e.ec} time(s)</div><div>${rc}<button style="width:auto;padding:7px 12px;margin:4px 6px 4px 0" onclick="editEntry(${i})">Edit</button><button class="danger" style="width:auto;padding:7px 12px;margin:4px 6px 4px 0" onclick="delEntry(${i})">తొలగించు</button></div><div style="margin-top:8px"><b>History</b> (newest first)</div>${ver||"No history"}`;
+}
+async function restoreVer(i,aid){
+  const e=S.e[i],x=(H[e.id]||[]).find(y=>y.id==aid);if(!x)return;const d=x.detail;
+  if(!confirm("Restore the version from "+T(x.at)+" as the current entry?"))return;
+  const v={savings:d.savings,loan_taken:d.loan_taken,loan_paid:d.loan_paid,interest:d.interest,fine:d.fine};
+  if(d.loan_months!=null)v.loan_months=d.loan_months;
+  const {error}=await sb.from("entries").update(v).eq("id",e.id);
+  if(error)return alert(error.message);
+  await load();render();const j=S.e.findIndex(y=>y.id==e.id);if(j>=0)toggleEntry(j);
 }
 
 function totalsForMember(id,throughMonth){
@@ -191,10 +228,15 @@ function totalsForMember(id,throughMonth){
   });
   return {s,l,paid,remaining:Math.max(0,l-paid),i,f};
 }
-function dash(){
-  let s=0,l=0,p=0,i=0,f=0;
-  S.e.forEach(e=>{s+=+e.s||0;l+=+e.l||0;p+=+e.loanPaid||+e.lp||0;i+=+e.i||0;f+=+e.f||0});
-  el("ds").textContent=M(s);el("dl").textContent=M(l);el("dlp").textContent=M(p);el("dbal").textContent=M(Math.max(0,l-p));el("di").textContent=M(i);el("df").textContent=M(f);el("mc").textContent=S.m.length;el("bk").style.display="none";
+async function dash(){
+  let s=0,l=0,p=0,i=0,f=0,mc=S.m.length;
+  if(ADM)S.e.forEach(e=>{s+=+e.s||0;l+=+e.l||0;p+=+e.loanPaid||+e.lp||0;i+=+e.i||0;f+=+e.f||0});
+  else{
+    const r=await sb.rpc("group_totals");
+    if(r.error){["ds","dl","dlp","dbal","di","df","mc"].forEach(x=>el(x).textContent="\u2014");el("bk").style.display="none";return}
+    const t=r.data;s=+t.savings;l=+t.loan;p=+t.paid;i=+t.interest;f=+t.fine;mc=+t.members;
+  }
+  el("ds").textContent=M(s);el("dl").textContent=M(l);el("dlp").textContent=M(p);el("dbal").textContent=M(Math.max(0,l-p));el("di").textContent=M(i);el("df").textContent=M(f);el("mc").textContent=mc;el("bk").style.display="none";
 }
 function personal(id){
   const m=S.m.find(x=>x.id==id);if(!m)return;
