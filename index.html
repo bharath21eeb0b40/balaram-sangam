@@ -45,8 +45,8 @@ body.viewer .adm{display:none!important}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
 <div id="login" class="card login"><h2>బలరాం సంగం</h2><p class="muted">Login లేకుండా లెక్కలు కనిపించవు</p><input id="uid" placeholder="User ID"><div class="pw"><input id="pwd" type="password" placeholder="Password"><button type="button" class="eye" onclick="eye('pwd')" title="Show / hide">&#128065;</button></div><button onclick="login()">Login</button><p id="err"></p><p id="firstMsg" class="muted"></p></div>
 <div id="app" class="hidden"><div class="top">బలరాం సంగం</div><div class="wrap">
-<div class="nav"><button onclick="page('dash')">Dashboard</button><button onclick="page('members')">Members</button><button onclick="page('monthly')">నెలవారీ లెక్కలు</button><button onclick="page('settings')">Settings</button></div>
-<section id="dash" class="page"><div id="bk" class="card" style="display:none;background:#fff4e5;border-color:#f0c36d">⚠️ 7 రోజులుగా Backup తీయలేదు. Settings → Backup Download నొక్కండి. ఫోన్ పోతే/బ్రౌజర్ clear చేస్తే లెక్కలు పోతాయి.</div>
+<div class="nav"><button onclick="page('dash')">Dashboard</button><button onclick="page('members')">Members</button><button onclick="page('monthly')">నెలవారీ లెక్కలు</button><button class="adm" onclick="page('deposit')">Add Money</button><button onclick="page('settings')">Settings</button></div>
+<section id="dash" class="page"><div id="nt"></div><div id="bk" class="card" style="display:none;background:#fff4e5;border-color:#f0c36d">⚠️ 7 రోజులుగా Backup తీయలేదు. Settings → Backup Download నొక్కండి. ఫోన్ పోతే/బ్రౌజర్ clear చేస్తే లెక్కలు పోతాయి.</div>
 <div class="summary">
 <div class="stat">మొత్తం పొదుపులు<b id="ds">₹0</b></div>
 <div class="stat">మొత్తం తీసుకున్న అప్పు<b id="dl">₹0</b></div>
@@ -79,6 +79,12 @@ body.viewer .adm{display:none!important}
 </div>
 <div class="card"><div class="section-title">ఎంట్రీలు</div><div class="adm" style="position:relative;margin:8px 0"><div style="display:flex;gap:6px"><input id="ef" style="flex:1" placeholder="Filter by name / పేరు" autocomplete="off" oninput="efType(this.value)" onfocus="efList()" onblur="setTimeout(()=>el('efl').classList.add('hidden'),150)"><button style="width:auto;padding:0 14px;background:#667085" onclick="efClear()" title="Clear">&#10005;</button></div><div id="efl" class="hidden" style="position:absolute;left:0;right:0;z-index:5;background:#fff;border:1px solid #cfd8d3;border-radius:10px;max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.12)"></div></div><div id="entries"></div></div>
 </section>
+<section id="deposit" class="page hidden adm"><div class="card"><h3>Add Money (Group Deposit)</h3>
+<input id="gdT" placeholder="Title (e.g. Diwali bonus)">
+<input id="gdA" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Total amount (&#8377;)" oninput="gdPrev()">
+<input id="gdD" type="date">
+<div style="display:flex;gap:6px"><button style="background:#667085" onclick="gdAll(true)">Select all</button><button style="background:#667085" onclick="gdAll(false)">Deselect all</button></div>
+<div id="gdL"></div><p id="gdP" class="muted"></p><button onclick="gdSubmit()">Add Money</button></div></section>
 <section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
 <section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>Member Password Reset (Admin)</h3><p class="muted">Existing passwords cannot be viewed. Enter the member's username and set a new one.</p><input id="rpu" placeholder="Member username (Login ID)" autocapitalize="none"><div class="pw"><input id="rpn" type="password" placeholder="New password (min 8)"><button type="button" class="eye" onclick="eye('rpn')" title="Show">&#128065;</button></div><button onclick="adminReset()">Set new password</button><p id="rpm" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
 </div></div>
@@ -93,7 +99,7 @@ const el=id=>document.getElementById(id);
 async function load(){
   const [pr,en,st]=await Promise.all([sb.from("profiles").select("*").order("name"),sb.from("entries").select("*").order("entry_date").limit(5000),sb.from("settings").select("*")]);
   S.m=(pr.data||[]).filter(p=>p.role==="viewer").map(p=>({id:p.id,n:p.name,p:p.phone||"",a:p.active,u:p.login_id}));
-  S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,ca:r.created_at,ua:r.updated_at,ec:r.edit_count||0,i:+r.interest,f:+r.fine}));
+  S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,ca:r.created_at,title:r.title||"",ua:r.updated_at,ec:r.edit_count||0,i:+r.interest,f:+r.fine}));
   S.rate=+((st.data||[]).find(x=>x.k==="rate")||{}).v||0;
 }
 async function boot(){
@@ -128,6 +134,7 @@ function page(id){
   el(id).classList.remove("hidden");
   if(id==="dash")dash();if(id==="settings")el("rate").value=S.rate||"";
   if(id==="members")members();
+  if(id==="deposit"){gdRender();if(!el("gdD").value)el("gdD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})}
   if(id==="monthly"){select();entries();if(!el("date").value)setTodayDate()}
 }
 
@@ -185,6 +192,24 @@ function cancelEdit(){editingIndex=-1;el("entryBtn").textContent="లెక్�
 
 const T=t=>t?new Date(t).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true}):"-";
 const H={};
+const GD=new Set();
+function gdRender(){el("gdL").innerHTML=S.m.filter(m=>m.a).map(m=>`<label style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #eef2ef"><input type="checkbox" style="width:auto" ${GD.has(m.id)?"checked":""} onchange="gdTog('${m.id}',this.checked)"> ${esc(m.n)}</label>`).join("");gdPrev()}
+function gdTog(id,c){c?GD.add(id):GD.delete(id);gdPrev()}
+function gdAll(v){GD.clear();if(v)S.m.filter(m=>m.a).forEach(m=>GD.add(m.id));gdRender()}
+function gdPrev(){const n=GD.size,tp=Math.round((+el("gdA").value||0)*100);let t=n+" selected";if(n&&tp>=n){t+=" \u00b7 \u20b9"+(Math.floor(tp/n)/100).toFixed(2)+" each";if(tp%n)t+=" (+1 paisa to the first "+tp%n+")"}el("gdP").textContent=t}
+async function gdSubmit(){
+  const t=el("gdT").value.trim(),a=+el("gdA").value,d=el("gdD").value,n=GD.size;
+  if(!t)return alert("Title ఇవ్వండి");if(!(a>0))return alert("Enter a valid amount");if(!n)return alert("Select at least one member");if(!d)return alert("Date ఇవ్వండి");
+  if(!confirm("Add "+M(a)+" ("+t+") split evenly among "+n+" member(s)?"))return;
+  const {error}=await sb.rpc("add_group_deposit",{p_title:t,p_total:a,p_date:d,p_members:[...GD]});
+  if(error)return alert(error.message);
+  alert("Added to "+n+" member(s)");["gdT","gdA"].forEach(x=>el(x).value="");GD.clear();await load();render();gdRender();
+}
+async function ntLoad(){const r=await sb.from("notifications").select("id,title,amount,created_at").is("read_at",null).order("created_at",{ascending:false});
+  if(r.error||!r.data.length){el("nt").innerHTML="";return}
+  el("nt").innerHTML=`<div class="card" style="background:#e8f5ec;border-color:#9fd3ae"><b>&#128276; మీ పొదుపులో డబ్బు చేర్చబడింది</b>${r.data.map(n=>`<div style="padding:6px 0">${M(n.amount)} &mdash; ${esc(n.title)} <span class="muted">(${T(n.created_at)})</span></div>`).join("")}<button style="width:auto;padding:7px 14px" onclick="ntRead()">OK</button></div>`}
+async function ntRead(){await sb.rpc("mark_notifications_read");el("nt").innerHTML=""}
+
 let EF="";
 function efList(){
   const q=EF.trim().toLowerCase(),b=el("efl");
@@ -201,7 +226,7 @@ function entries(){
   const rows=S.e.slice().reverse().map(e=>{
     const idx=S.e.indexOf(e),m=S.m.find(x=>x.id==e.m);if(!m)return"";if(EF.trim()&&!m.n.toLowerCase().includes(EF.trim().toLowerCase()))return"";
     const loan=+e.l||0,paid=+e.loanPaid||+e.lp||0,bal=Math.max(0,loan-paid);
-    return `<tr><td>${esc(m.n)}</td><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(loan)}</td><td>${M(paid)}</td><td>${M(bal)}</td><td><button style="width:auto;padding:7px 12px;background:#667085" onclick="toggleEntry(${idx})" title="Details">&#9662;</button></td></tr><tr id="d${idx}" class="hidden"><td colspan="8" id="dc${idx}"></td></tr>`;
+    return `<tr><td>${esc(m.n)}${e.title?`<br><small class="muted">${esc(e.title)}</small>`:""}</td><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(loan)}</td><td>${M(paid)}</td><td>${M(bal)}</td><td><button style="width:auto;padding:7px 12px;background:#667085" onclick="toggleEntry(${idx})" title="Details">&#9662;</button></td></tr><tr id="d${idx}" class="hidden"><td colspan="8" id="dc${idx}"></td></tr>`;
   }).join("");
   el("entries").innerHTML=rows?`<table><tr><th>సభ్యుడు</th><th>తేదీ</th><th>నెల</th><th>పొదుపు</th><th>తీసుకున్న అప్పు</th><th>అప్పు కట్టినది</th><th>మిగిలిన అప్పు</th><th>చర్య</th></tr>${rows}</table>`:(EF.trim()?"<p style=\"color:#b42318\">No match found</p>":"రికార్డులు లేవు");
 }
@@ -243,6 +268,7 @@ function totalsForMember(id,throughMonth){
   return {s,l,paid,remaining:Math.max(0,l-paid),i,f};
 }
 async function dash(){
+  if(!ADM)ntLoad();
   let s=0,l=0,p=0,i=0,f=0,mc=S.m.length;
   if(ADM)S.e.forEach(e=>{s+=+e.s||0;l+=+e.l||0;p+=+e.loanPaid||+e.lp||0;i+=+e.i||0;f+=+e.f||0});
   else{
