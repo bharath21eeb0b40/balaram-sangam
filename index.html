@@ -42,6 +42,13 @@ h2,h3{margin-top:4px}.section-title{font-size:19px;font-weight:800;margin-bottom
 .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;overflow:auto;padding:20px}.receipt-box{max-width:430px;margin:20px auto;background:#fff;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25)}.receipt-head{text-align:center;border-bottom:1px dashed #999;padding-bottom:10px;margin-bottom:10px}.receipt-head h2{margin:0;color:#146c3a}.receipt-table{width:100%;border-collapse:collapse}.receipt-table td{padding:9px;border-bottom:1px dotted #bbb}.receipt-table td:last-child{text-align:right;font-weight:700}.receipt-actions{display:flex;gap:8px;justify-content:center;margin-top:18px}@media print{body>*:not(#receiptModal){display:none!important}.receipt-overlay{position:static;background:#fff;padding:0}.receipt-box{box-shadow:none;margin:0;max-width:none}}
 body.viewer .adm{display:none!important}
 .pw{position:relative}.pw input{padding-right:48px}.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto!important;margin:0!important;padding:6px 10px!important;background:none!important;border:0!important;color:#555!important;font-size:18px!important}
+
+#stmtPrint{display:none}
+.st-head{text-align:center;border-bottom:2px solid #14532d;padding-bottom:8px;margin-bottom:10px}.st-head h2{margin:0;color:#14532d}
+.st-meta{display:flex;justify-content:space-between;font-size:13px;margin:6px 0 10px}
+.st-table{width:100%;border-collapse:collapse;font-size:11px}.st-table th,.st-table td{border:1px solid #999;padding:4px 5px;text-align:right}.st-table th:nth-child(-n+2),.st-table td:nth-child(-n+2){text-align:left}.st-table th{background:#e8f0ea}.st-table tfoot td{font-weight:700;background:#f2f6f3}.st-table thead{display:table-header-group}.st-table tr{page-break-inside:avoid}
+@page{size:A4;margin:12mm}
+@media print{body.printing-stmt>*:not(#stmtPrint){display:none!important}body.printing-stmt #stmtPrint{display:block!important}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
 <div id="login" class="card login"><h2>బలరాం సంగం</h2><p class="muted">Login లేకుండా లెక్కలు కనిపించవు</p><input id="uid" placeholder="User ID"><div class="pw"><input id="pwd" type="password" placeholder="Password"><button type="button" class="eye" onclick="eye('pwd')" title="Show / hide">&#128065;</button></div><button onclick="login()">Login</button><p id="err"></p><p id="firstMsg" class="muted"></p></div>
 <div id="app" class="hidden"><div class="top">బలరాం సంగం</div><div class="wrap">
@@ -85,7 +92,7 @@ body.viewer .adm{display:none!important}
 <input id="gdD" type="date">
 <div style="display:flex;gap:6px"><button style="background:#667085" onclick="gdAll(true)">Select all</button><button style="background:#667085" onclick="gdAll(false)">Deselect all</button></div>
 <div id="gdL"></div><p id="gdP" class="muted"></p><button onclick="gdSubmit()">Add Money</button></div></section>
-<section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
+<section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button onclick="printHistory()">History Print / PDF</button><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
 <section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>Member Password Reset (Admin)</h3><p class="muted">Existing passwords cannot be viewed. Enter the member's username and set a new one.</p><input id="rpu" placeholder="Member username (Login ID)" autocapitalize="none"><div class="pw"><input id="rpn" type="password" placeholder="New password (min 8)"><button type="button" class="eye" onclick="eye('rpn')" title="Show">&#128065;</button></div><button onclick="adminReset()">Set new password</button><p id="rpm" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
 </div></div>
 <script>
@@ -285,6 +292,27 @@ function personal(id){
   el("ps").textContent=M(a.s);el("pl").textContent=M(a.l);el("pi").textContent=M(a.i);el("pf").textContent=M(a.f);el("ppaid").textContent=M(a.paid);el("pbal").textContent=M(a.remaining);
   el("prows").innerHTML=es.length?`<table><tr><th>తేదీ</th><th>నెల</th><th>పొదుపు</th><th>అప్పు</th><th>కట్టినది</th><th>మిగిలిన అప్పు</th></tr>${es.slice().reverse().map(e=>`<tr><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(e.l)}</td><td>${M(e.loanPaid||e.lp)}</td><td>${M(totalsForMember(e.m,e.mo).remaining)}</td></tr>`).join("")}</table>`:"లెక్కలు లేవు";
   document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));el("personal").classList.remove("hidden");
+}
+function stmtHtml(m){
+  const es=S.e.filter(e=>String(e.m)===String(m.id)).slice().sort((a,b)=>String(a.d||"").localeCompare(String(b.d||""))||(+a.id-+b.id));
+  let cl=0,cp=0,ts=0,ti=0,tf=0;
+  const rows=es.map(e=>{
+    const loan=+e.l||0,paid=+e.loanPaid||0;cl+=loan;cp+=paid;ts+=+e.s||0;ti+=+e.i||0;tf+=+e.f||0;
+    return `<tr><td>${esc(e.d||"-")}</td><td>${esc(e.title||"")}</td><td>${M(e.s)}</td><td>${M(loan)}${e.loanMonths?`<br><small>${e.loanMonths} నెలలు</small>`:""}</td><td>${M(paid)}</td><td>${M(e.i)}</td><td>${M(e.f)}</td><td>${M(Math.max(0,cl-cp))}</td></tr>`}).join("");
+  return `<div class="st-head"><h2>బలరాం సంగం</h2><div>సభ్యుని లెక్కల చరిత్ర</div></div>
+  <div class="st-meta"><span><b>${esc(m.n)}</b>${m.p?" &middot; "+esc(m.p):""}</span><span>${T(new Date())}</span></div>
+  ${es.length?`<table class="st-table"><thead><tr><th>తేదీ</th><th>వివరం</th><th>పొదుపు</th><th>తీసుకున్న అప్పు</th><th>కట్టినది</th><th>మిత్తి</th><th>ఫైన్</th><th>మిగిలిన అప్పు</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2">మొత్తం</td><td>${M(ts)}</td><td>${M(cl)}</td><td>${M(cp)}</td><td>${M(ti)}</td><td>${M(tf)}</td><td>${M(Math.max(0,cl-cp))}</td></tr></tfoot></table>`:"<p>లెక్కలు లేవు</p>"}`;
+}
+function printHistory(){
+  const m=S.m.find(x=>x.id==curM);if(!m)return;
+  let box=el("stmtPrint");if(!box){box=document.createElement("div");box.id="stmtPrint";document.body.appendChild(box)}
+  box.innerHTML=stmtHtml(m);
+  const t0=document.title;
+  document.title="Balaram_Sangam_"+(m.u||"member")+"_"+new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+  document.body.classList.add("printing-stmt");
+  const done=()=>{document.body.classList.remove("printing-stmt");document.title=t0;window.removeEventListener("afterprint",done)};
+  window.addEventListener("afterprint",done);
+  window.print();
 }
 async function creds(){
   const p=el("np").value;if(p.length<8)return el("msg").textContent="కనీసం 8 అక్షరాల Password ఇవ్వండి";
