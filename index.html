@@ -41,18 +41,22 @@ h2,h3{margin-top:4px}.section-title{font-size:19px;font-weight:800;margin-bottom
 
 .receipt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;overflow:auto;padding:20px}.receipt-box{max-width:430px;margin:20px auto;background:#fff;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.25)}.receipt-head{text-align:center;border-bottom:1px dashed #999;padding-bottom:10px;margin-bottom:10px}.receipt-head h2{margin:0;color:#146c3a}.receipt-table{width:100%;border-collapse:collapse}.receipt-table td{padding:9px;border-bottom:1px dotted #bbb}.receipt-table td:last-child{text-align:right;font-weight:700}.receipt-actions{display:flex;gap:8px;justify-content:center;margin-top:18px}@media print{body>*:not(#receiptModal){display:none!important}.receipt-overlay{position:static;background:#fff;padding:0}.receipt-box{box-shadow:none;margin:0;max-width:none}}
 body.viewer .adm{display:none!important}
+@media print{.np{display:none!important}}
 .pw{position:relative}.pw input{padding-right:48px}.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto!important;margin:0!important;padding:6px 10px!important;background:none!important;border:0!important;color:#555!important;font-size:18px!important}
-
-#stmtPrint{display:none}
-.st-head{text-align:center;border-bottom:2px solid #14532d;padding-bottom:8px;margin-bottom:10px}.st-head h2{margin:0;color:#14532d}
-.st-meta{display:flex;justify-content:space-between;font-size:13px;margin:6px 0 10px}
-.st-table{width:100%;border-collapse:collapse;font-size:11px}.st-table th,.st-table td{border:1px solid #999;padding:4px 5px;text-align:right}.st-table th:nth-child(-n+2),.st-table td:nth-child(-n+2){text-align:left}.st-table th{background:#e8f0ea}.st-table tfoot td{font-weight:700;background:#f2f6f3}.st-table thead{display:table-header-group}.st-table tr{page-break-inside:avoid}
-@page{size:A4;margin:12mm}
-@media print{body.printing-stmt>*:not(#stmtPrint){display:none!important}body.printing-stmt #stmtPrint{display:block!important}}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
 <div id="login" class="card login"><h2>బలరాం సంగం</h2><p class="muted">Login లేకుండా లెక్కలు కనిపించవు</p><input id="uid" placeholder="User ID"><div class="pw"><input id="pwd" type="password" placeholder="Password"><button type="button" class="eye" onclick="eye('pwd')" title="Show / hide">&#128065;</button></div><button onclick="login()">Login</button><p id="err"></p><p id="firstMsg" class="muted"></p></div>
 <div id="app" class="hidden"><div class="top">బలరాం సంగం</div><div class="wrap">
-<div class="nav"><button onclick="page('dash')">Dashboard</button><button onclick="page('members')">Members</button><button onclick="page('monthly')">నెలవారీ లెక్కలు</button><button class="adm" onclick="page('deposit')">Add Money</button><button onclick="page('settings')">Settings</button></div>
+<div class="nav"><button onclick="page('dash')">Dashboard</button><button onclick="page('members')">Members</button><button onclick="page('monthly')">నెలవారీ లెక్కలు</button><button class="adm" onclick="page('deposit')">Add Money</button><button onclick="page('settings')">Settings</button><button class="adm" onclick="page('due')">బాకీ జాబితా</button></div>
+<section id="due" class="page hidden"><div class="card"><div class="section-title">ఈ నెల లెక్క</div>
+<input id="dueM" type="month" onchange="dueRender()" style="margin-bottom:10px">
+<div class="summary"><div class="stat">ఇచ్చిన అప్పు<b id="dtL">₹0</b></div><div class="stat">కట్టిన అప్పు<b id="dtP">₹0</b></div><div class="stat">పొదుపు<b id="dtS">₹0</b></div><div class="stat">మిత్తి<b id="dtI">₹0</b></div><div class="stat">ఫైన్<b id="dtF">₹0</b></div></div>
+<div id="dtX" class="muted" style="margin-top:8px"></div></div>
+<div class="card"><div class="section-title">ఈ నెల వరకు మొత్తం (అందరూ కలిపి)</div>
+<div class="summary"><div class="stat">మొత్తం పొదుపులు<b id="cuS">₹0</b></div><div class="stat">మొత్తం ఇచ్చిన అప్పు<b id="cuL">₹0</b></div><div class="stat">మొత్తం కట్టిన అప్పు<b id="cuP">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="cuB">₹0</b></div><div class="stat">మొత్తం మిత్తి<b id="cuI">₹0</b></div><div class="stat">మొత్తం ఫైన్<b id="cuF">₹0</b></div><div class="stat">అసలు మొత్తం<b id="cuA">₹0</b></div><div class="stat">సంఘం నిలువ<b id="cuC">₹0</b></div></div>
+<div class="muted" style="margin-top:8px">గ్రూప్ డిపాజిట్లు/వాటా కలిపిన మొత్తాలు. సెలెక్ట్ చేసిన నెల చివరి వరకు.</div></div>
+<div class="card"><div class="section-title">బాకీ జాబితా (కట్టని వారు)</div><div id="dueS" style="margin-bottom:8px"></div>
+<div style="overflow-x:auto"><table><tr><th>పేరు</th><th>ఫోన్</th><th>బాకీ</th></tr><tbody id="dueT"></tbody></table></div>
+<button class="np" style="margin-top:10px" onclick="window.print()">Print / PDF</button></div></section>
 <section id="dash" class="page"><div id="nt"></div><div id="bk" class="card" style="display:none;background:#fff4e5;border-color:#f0c36d">⚠️ 7 రోజులుగా Backup తీయలేదు. Settings → Backup Download నొక్కండి. ఫోన్ పోతే/బ్రౌజర్ clear చేస్తే లెక్కలు పోతాయి.</div>
 <div class="summary">
 <div class="stat">మొత్తం పొదుపులు<b id="ds">₹0</b></div>
@@ -63,6 +67,9 @@ body.viewer .adm{display:none!important}
 <div class="stat">మొత్తం ఫైన్<b id="df">₹0</b></div>
 </div>
 <div class="card"><div class="section-title">సభ్యుల సంఖ్య</div><b id="mc">0</b></div>
+<div class="card" style="background:#eef7f0;border-color:#9fd3ae"><div class="section-title">సంఘం దగ్గర ఉన్న నిలువ</div><b id="cashV" style="font-size:28px;color:var(--primary)">₹0</b><div id="cashB" style="margin-top:10px"></div><div class="muted" style="margin-top:8px">నిలువ = పొదుపులు + మిత్తి + ఫైన్ + చెరువు లాభం + కట్టిన అప్పు − ఇచ్చిన అప్పు − పొదుపులో పంచినది (ఆటోమేటిక్)</div><div class="np" style="margin-top:12px"><select id="hpM"></select><button onclick="histPdf()">📄 History PDF</button></div></div>
+<div class="card" style="background:#fff8e6;border-color:#e6c36a"><div class="section-title">అసలు మొత్తం (సంఘం విలువ)</div><b id="avV" style="font-size:28px;color:var(--primary)">₹0</b><div id="avB" style="margin-top:10px"></div><div class="muted" style="margin-top:8px">అసలు మొత్తం = పొదుపులు + మిత్తి + ఫైన్ (ఆటోమేటిక్). &nbsp;నిలువ = అసలు మొత్తం + చెరువు లాభం − బయట ఉన్న అప్పు</div></div>
+<div class="card adm"><div class="section-title">నెలవారీ సంఘం నిలువ</div><div id="cashM" style="overflow-x:auto"></div></div>
 </section>
 <section id="members" class="page hidden"><div class="card adm"><h3>సభ్యుడిని చేర్చండి</h3><input id="mn" placeholder="సభ్యుడి పేరు"><input id="mp" placeholder="ఫోన్ నంబర్"><input id="mid" placeholder="Login ID (a-z, 0-9)"><input id="mpw" placeholder="తాత్కాలిక Password (కనీసం 8)"><button id="mbtn" onclick="addMember()">సేవ్</button><button id="mcancel" class="hidden" style="background:#667085" onclick="cancelMember()">Cancel</button></div><div id="selfCard" class="card hidden"><h3>నా వివరాలు</h3><input id="sn" placeholder="పేరు"><input id="sp" placeholder="ఫోన్ నంబర్"><button onclick="saveSelf()">Update</button><button style="background:#667085" onclick="el('selfCard').classList.add('hidden')">Cancel</button></div><div id="memberList"></div></section>
 <section id="monthly" class="page hidden">
@@ -91,23 +98,31 @@ body.viewer .adm{display:none!important}
 <input id="gdA" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Total amount (&#8377;)" oninput="gdPrev()">
 <input id="gdD" type="date">
 <div style="display:flex;gap:6px"><button style="background:#667085" onclick="gdAll(true)">Select all</button><button style="background:#667085" onclick="gdAll(false)">Deselect all</button></div>
-<div id="gdL"></div><p id="gdP" class="muted"></p><button onclick="gdSubmit()">Add Money</button></div></section>
-<section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button onclick="printHistory()">History Print / PDF</button><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button></div></section>
+<div id="gdL"></div><p id="gdP" class="muted"></p><button onclick="gdSubmit()">Add Money</button></div>
+<div class="card"><h3>చెరువు చేపల లాభం (సంఘం ఆదాయం)</h3><p class="muted">ఇది సభ్యుల పొదుపులో కలవదు — సంఘం నిలువలో మాత్రమే కలుస్తుంది. నష్టం వస్తే మొత్తం ముందు minus (-) పెట్టండి.</p><p id="gpWarn" style="color:#b42318;font-size:13px"></p>
+<input id="gpT" placeholder="వివరం (ఉదా: చేపల అమ్మకం)"><input id="gpA" type="number" step="0.01" inputmode="decimal" placeholder="లాభం ₹"><input id="gpD" type="date"><button onclick="gpSubmit()">సేవ్</button><div id="gpL"></div></div>
+<div class="card"><h3>వార్షిక వాటా పంపిణీ (మిత్తి + ఫైన్)</h3><p class="muted">సంవత్సరానికి ఒకసారి. వచ్చిన మిత్తి, ఫైన్ అందరు సభ్యులకు సమానంగా పంచి వారి పొదుపులో కలుస్తుంది. సంఘం నిలువ మారదు — డబ్బు ఒక చోటి నుంచి మరో చోటికి మాత్రమే వెళ్తుంది.</p><div id="dsI" style="margin:8px 0"></div>
+<input id="dsA" type="number" step="0.01" inputmode="decimal" placeholder="పంచే మొత్తం ₹"><input id="dsD" type="date">
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:8px 0"><input id="dsR" type="checkbox" style="width:auto;margin-top:3px"> ఇంతకుముందే Add Money ద్వారా పంచేశాను — లెక్కలో మాత్రమే నమోదు చేయి (పొదుపులో మళ్లీ చేరదు)</label>
+<button onclick="dsSubmit()">అందరికీ సమానంగా పంచు</button><div id="dsL"></div></div>
+</section>
+<section id="personal" class="page hidden"><div class="card"><h2 id="pn"></h2><p id="pp" class="muted"></p><div class="grid"><div class="stat">పొదుపు<b id="ps">₹0</b></div><div class="stat">లోన్<b id="pl">₹0</b></div><div class="stat">మిత్తి<b id="pi">₹0</b></div><div class="stat">ఫైన్<b id="pf">₹0</b></div><div class="stat">అప్పు కట్టినది<b id="ppaid">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="pbal">₹0</b></div></div><div id="prows"></div><button class="secondary" onclick="page('members')">వెనక్కి</button><button id="prs" class="secondary" onclick="rp()">Password reset</button><button id="pdel" class="danger">సభ్యుడిని నిలిపివేయి / ఆన్ చేయి</button><button class="np" style="background:#14532d" onclick="histPdf(curM)">📄 History PDF</button></div></section>
 <section id="settings" class="page hidden"><div class="card"><h3>Password మార్చండి</h3><div class="pw"><input id="np" type="password" placeholder="కొత్త Password (కనీసం 8)"><button type="button" class="eye" onclick="eye('np')" title="Show / hide">&#128065;</button></div><button onclick="creds()">Save</button><p id="msg" class="muted"></p></div><div class="card adm"><h3>Member Password Reset (Admin)</h3><p class="muted">Existing passwords cannot be viewed. Enter the member's username and set a new one.</p><input id="rpu" placeholder="Member username (Login ID)" autocapitalize="none"><div class="pw"><input id="rpn" type="password" placeholder="New password (min 8)"><button type="button" class="eye" onclick="eye('rpn')" title="Show">&#128065;</button></div><button onclick="adminReset()">Set new password</button><p id="rpm" class="muted"></p></div><div class="card adm"><h3>మిత్తి శాతం</h3><input id="rate" type="number" step="0.1" min="0" placeholder="నెలకు మిత్తి %"><button onclick="saveRate()">Save</button></div><div class="card"><button class="adm" onclick="backup()">Backup Download</button><button class="secondary" onclick="logout()">Logout</button></div></section>
 </div></div>
 <script>
 const URL_="https://dukeiorbexilqdahottt.supabase.co",KEY="sb_publishable_rj75FgUap1WQqYWJO4xSGw_jEX-KV_Z",DOM="@sangam.example.com";
 const CFG_OK=!/PASTE_/.test(URL_+KEY);
 const sb=CFG_OK?supabase.createClient(URL_,KEY):null;
-let S={m:[],e:[],rate:0},editingIndex=-1,me=null,ADM=false,curM=null;
+let S={m:[],e:[],rate:0,g:[],gErr:false},GP=0,GQ=0,editingIndex=-1,me=null,ADM=false,curM=null;
 const M=x=>"₹"+Number(x||0).toLocaleString("en-IN");
 const el=id=>document.getElementById(id);
 
 async function load(){
-  const [pr,en,st]=await Promise.all([sb.from("profiles").select("*").order("name"),sb.from("entries").select("*").order("entry_date").limit(5000),sb.from("settings").select("*")]);
+  const [pr,en,st,gi]=await Promise.all([sb.from("profiles").select("*").order("name"),sb.from("entries").select("*").order("entry_date").limit(5000),sb.from("settings").select("*"),ADM?sb.from("group_income").select("*").order("income_date"):Promise.resolve({data:[]})]);
   S.m=(pr.data||[]).filter(p=>p.role==="viewer").map(p=>({id:p.id,n:p.name,p:p.phone||"",a:p.active,u:p.login_id}));
   S.e=(en.data||[]).map(r=>({id:r.id,m:r.member_id,d:r.entry_date,mo:r.entry_date.slice(0,7),s:+r.savings,l:+r.loan_taken,loanPaid:+r.loan_paid,loanMonths:r.loan_months||0,ca:r.created_at,title:r.title||"",ua:r.updated_at,ec:r.edit_count||0,i:+r.interest,f:+r.fine}));
   S.rate=+((st.data||[]).find(x=>x.k==="rate")||{}).v||0;
+  S.gErr=!!gi.error;S.g=(gi.data||[]).map(r=>({id:r.id,d:r.income_date,t:r.title||"",a:+r.amount,k:r.kind||"pond"}));
 }
 async function boot(){
   const {data:{session}}=await sb.auth.getSession();if(!session)return;
@@ -139,9 +154,9 @@ async function fn(b,retry){
 function page(id){
   document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));
   el(id).classList.remove("hidden");
-  if(id==="dash")dash();if(id==="settings")el("rate").value=S.rate||"";
+  if(id==="dash")dash();if(id==="settings")el("rate").value=S.rate||"";if(id==="due")dueRender();
   if(id==="members")members();
-  if(id==="deposit"){gdRender();if(!el("gdD").value)el("gdD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})}
+  if(id==="deposit"){gdRender();gpRender();dsRender();if(!el("gdD").value)el("gdD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})}
   if(id==="monthly"){select();entries();if(!el("date").value)setTodayDate()}
 }
 
@@ -177,6 +192,8 @@ function clearForm(){
 async function saveEntry(){
   const member=el("ms").value,date=el("date").value;
   if(!member||!date)return alert("సభ్యుడు మరియు తేదీ ఎంచుకోండి");
+  const dupE=S.e.find((x,ix)=>x.m==member&&x.d===date&&!x.title&&ix!==editingIndex);
+  if(dupE)return alert("ఈ సభ్యునికి ఈ తేదీ ("+date+") లో ఇప్పటికే ఎంట్రీ ఉంది. కొత్త ఎంట్రీ కోసం తేదీ మార్చండి, లేదా ఉన్న ఎంట్రీని Edit చేయండి.");
   const v={member_id:member,entry_date:date,savings:+el("save").value||0,loan_taken:+el("loan").value||0,loan_paid:+el("loanPaid").value||0,loan_months:+el("loanMonths").value||0,interest:+el("interest").value||0,fine:+el("fine").value||0};
   if(Object.values(v).some(x=>typeof x==="number"&&x<0))return alert("విలువలు 0 లేదా ఎక్కువ ఉండాలి");
   const nm=(S.m.find(x=>x.id==member)||{}).n;
@@ -281,9 +298,10 @@ async function dash(){
   else{
     const r=await sb.rpc("group_totals");
     if(r.error){["ds","dl","dlp","dbal","di","df","mc"].forEach(x=>el(x).textContent="\u2014");el("bk").style.display="none";return}
-    const t=r.data;s=+t.savings;l=+t.loan;p=+t.paid;i=+t.interest;f=+t.fine;mc=+t.members;
+    const t=r.data;GP=+t.pond||0;GQ=+t.dist||0;s=+t.savings;l=+t.loan;p=+t.paid;i=+t.interest;f=+t.fine;mc=+t.members;
   }
   el("ds").textContent=M(s);el("dl").textContent=M(l);el("dlp").textContent=M(p);el("dbal").textContent=M(Math.max(0,l-p));el("di").textContent=M(i);el("df").textContent=M(f);el("mc").textContent=mc;el("bk").style.display="none";
+  cash(s,l,p,i,f);
 }
 function personal(id){
   const m=S.m.find(x=>x.id==id);if(!m)return;
@@ -292,27 +310,6 @@ function personal(id){
   el("ps").textContent=M(a.s);el("pl").textContent=M(a.l);el("pi").textContent=M(a.i);el("pf").textContent=M(a.f);el("ppaid").textContent=M(a.paid);el("pbal").textContent=M(a.remaining);
   el("prows").innerHTML=es.length?`<table><tr><th>తేదీ</th><th>నెల</th><th>పొదుపు</th><th>అప్పు</th><th>కట్టినది</th><th>మిగిలిన అప్పు</th></tr>${es.slice().reverse().map(e=>`<tr><td>${e.d||"-"}</td><td>${e.mo||"-"}</td><td>${M(e.s)}</td><td>${M(e.l)}</td><td>${M(e.loanPaid||e.lp)}</td><td>${M(totalsForMember(e.m,e.mo).remaining)}</td></tr>`).join("")}</table>`:"లెక్కలు లేవు";
   document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));el("personal").classList.remove("hidden");
-}
-function stmtHtml(m){
-  const es=S.e.filter(e=>String(e.m)===String(m.id)).slice().sort((a,b)=>String(a.d||"").localeCompare(String(b.d||""))||(+a.id-+b.id));
-  let cl=0,cp=0,ts=0,ti=0,tf=0;
-  const rows=es.map(e=>{
-    const loan=+e.l||0,paid=+e.loanPaid||0;cl+=loan;cp+=paid;ts+=+e.s||0;ti+=+e.i||0;tf+=+e.f||0;
-    return `<tr><td>${esc(e.d||"-")}</td><td>${esc(e.title||"")}</td><td>${M(e.s)}</td><td>${M(loan)}${e.loanMonths?`<br><small>${e.loanMonths} నెలలు</small>`:""}</td><td>${M(paid)}</td><td>${M(e.i)}</td><td>${M(e.f)}</td><td>${M(Math.max(0,cl-cp))}</td></tr>`}).join("");
-  return `<div class="st-head"><h2>బలరాం సంగం</h2><div>సభ్యుని లెక్కల చరిత్ర</div></div>
-  <div class="st-meta"><span><b>${esc(m.n)}</b>${m.p?" &middot; "+esc(m.p):""}</span><span>${T(new Date())}</span></div>
-  ${es.length?`<table class="st-table"><thead><tr><th>తేదీ</th><th>వివరం</th><th>పొదుపు</th><th>తీసుకున్న అప్పు</th><th>కట్టినది</th><th>మిత్తి</th><th>ఫైన్</th><th>మిగిలిన అప్పు</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2">మొత్తం</td><td>${M(ts)}</td><td>${M(cl)}</td><td>${M(cp)}</td><td>${M(ti)}</td><td>${M(tf)}</td><td>${M(Math.max(0,cl-cp))}</td></tr></tfoot></table>`:"<p>లెక్కలు లేవు</p>"}`;
-}
-function printHistory(){
-  const m=S.m.find(x=>x.id==curM);if(!m)return;
-  let box=el("stmtPrint");if(!box){box=document.createElement("div");box.id="stmtPrint";document.body.appendChild(box)}
-  box.innerHTML=stmtHtml(m);
-  const t0=document.title;
-  document.title="Balaram_Sangam_"+(m.u||"member")+"_"+new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
-  document.body.classList.add("printing-stmt");
-  const done=()=>{document.body.classList.remove("printing-stmt");document.title=t0;window.removeEventListener("afterprint",done)};
-  window.addEventListener("afterprint",done);
-  window.print();
 }
 async function creds(){
   const p=el("np").value;if(p.length<8)return el("msg").textContent="కనీసం 8 అక్షరాల Password ఇవ్వండి";
@@ -333,6 +330,7 @@ async function rp(){const p=prompt("కొత్త తాత్కాలిక 
 function backup(){
   const nm=id=>((S.m.find(x=>x.id==id)||{}).n||"").replace(/,/g," ");
   const l=[["member","date","savings","loan","paid","months","interest","fine"].join(",")].concat(S.e.map(e=>[nm(e.m),e.d,e.s,e.l,e.loanPaid,e.loanMonths,e.i,e.f].join(",")));
+  if(S.g.length){l.push("");l.push("చెరువు లాభం");l.push("date,title,amount,kind");S.g.forEach(x=>l.push([x.d,String(x.t).replace(/,/g," "),x.a,x.k].join(",")))}
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([l.join("\n")],{type:"text/csv"}));a.download="Balaram_Sangam_Export.csv";a.click();
 }
 function receipt(idx){
@@ -352,6 +350,117 @@ boot();
 
 function esc(v){
   return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const MS=x=>(x<0?"\u2212":"")+M(Math.abs(x));
+const R2=x=>Math.round(x*100)/100;
+function cash(s,l,p,i,f){
+  const pd=ADM?S.g.filter(x=>x.k!=="dist").reduce((a,x)=>a+x.a,0):GP,dd=ADM?S.g.filter(x=>x.k==="dist").reduce((a,x)=>a+x.a,0):GQ;
+  const hs=el("hpM");if(hs){const cur=hs.value,ops=(ADM?'<option value="">అందరు సభ్యులు</option>':'')+S.m.map(m=>`<option value="${m.id}">${esc(m.n)}</option>`).join("");if(hs._k!==ops){hs.innerHTML=ops;hs._k=ops;hs.value=cur}}
+  const c=R2(s+i+f+pd+p-l-dd),v=el("cashV");
+  v.textContent=MS(c);v.style.color=c<0?"#b42318":"";
+  const row=(t,x,sg)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dcebe0"><span>${sg} ${t}</span><b>${M(x)}</b></div>`;
+  el("cashB").innerHTML=row("మొత్తం పొదుపులు",s,"+")+row("మిత్తి",i,"+")+row("ఫైన్",f,"+")+row("చెరువు చేపల లాభం",pd,"+")+row("కట్టిన అప్పు",p,"+")+row("సంఘం ఇచ్చిన అప్పు",l,"\u2212")+(dd?row("సభ్యుల పొదుపులో కలిపి పంచినది",dd,"\u2212"):"");
+  el("avV").textContent=M(R2(s+i+f-dd));
+  el("avB").innerHTML=row("మొత్తం పొదుపులు",s,"+")+row("మిత్తి",i,"+")+row("ఫైన్",f,"+")+(dd?row("పొదుపులో కలిపి పంచినది (రెండుసార్లు లెక్కించకుండా)",dd,"\u2212"):"");
+  if(!ADM){el("cashM").innerHTML="";return}
+  const mo={};const g=k=>mo[k]||(mo[k]={s:0,i:0,f:0,pd:0,l:0,p:0,dd:0});
+  S.e.forEach(e=>{const o=g(e.mo);o.s+=+e.s||0;o.i+=+e.i||0;o.f+=+e.f||0;o.l+=+e.l||0;o.p+=+e.loanPaid||+e.lp||0});
+  S.g.forEach(x=>{const o=g(String(x.d).slice(0,7));if(x.k==="dist")o.dd+=x.a;else o.pd+=x.a});
+  let run=0,run2=0;const ks=Object.keys(mo).sort(),rows=ks.map(k=>{const o=mo[k];run=R2(run+o.s+o.i+o.f+o.pd+o.p-o.l-o.dd);run2=R2(run2+o.s+o.i+o.f-o.dd);return `<tr><td>${k}</td><td>${M(o.s)}</td><td>${M(o.i)}</td><td>${M(o.f)}</td><td>${M(o.pd)}</td><td>${M(o.l)}</td><td>${M(o.p)}</td><td>${M(o.dd)}</td><td><b style="color:${run<0?"#b42318":"inherit"}">${MS(run)}</b></td><td><b>${M(run2)}</b></td></tr>`}).reverse().join("");
+  el("cashM").innerHTML=rows?`<table style="min-width:820px"><tr><th>నెల</th><th>పొదుపు</th><th>మిత్తి</th><th>ఫైన్</th><th>చెరువు</th><th>ఇచ్చిన అప్పు</th><th>కట్టిన అప్పు</th><th>పొదుపులో పంచినది</th><th>నెల చివరి నిలువ</th><th>అసలు మొత్తం</th></tr>${rows}</table>`:"రికార్డులు లేవు";
+}
+function histPdf(mid){
+  const sel=mid||el("hpM").value,ms=S.m.filter(m=>!sel||m.id==sel);
+  const today=new Date().toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata"});
+  const th="<tr><th>తేదీ</th><th>పొదుపు</th><th>అప్పు</th><th>కట్టినది</th><th>మిత్తి</th><th>ఫైన్</th><th>మిగిలిన అప్పు</th></tr>";
+  const body=ms.map(m=>{
+    const es=S.e.filter(e=>e.m==m.id).slice().sort((a,b)=>String(a.d||"").localeCompare(String(b.d||""))||a.id-b.id);
+    let l=0,p=0;
+    const rows=es.map(e=>{l+=+e.l||0;p+=+e.loanPaid||+e.lp||0;return `<tr><td>${esc(e.d||"-")}${e.title?`<br><small>${esc(e.title)}</small>`:""}</td><td>${M(e.s)}</td><td>${M(e.l)}</td><td>${M(e.loanPaid||e.lp)}</td><td>${M(e.i)}</td><td>${M(e.f)}</td><td>${M(Math.max(0,l-p))}</td></tr>`}).join("");
+    const t=totalsForMember(m.id);
+    return `<h3 style="margin:16px 0 4px">${esc(m.n)} <small>${esc(m.p||"")}</small></h3><table style="font-size:12px">${th}${rows||'<tr><td colspan="7">లెక్కలు లేవు</td></tr>'}<tr style="font-weight:800;background:#f0f5f1"><td>మొత్తం</td><td>${M(t.s)}</td><td>${M(t.l)}</td><td>${M(t.paid)}</td><td>${M(t.i)}</td><td>${M(t.f)}</td><td>${M(t.remaining)}</td></tr></table>`}).join("");
+  const mon=(ADM&&!sel)?`<h3 style="margin:20px 0 4px">నెలవారీ సంఘం నిలువ</h3>${el("cashM").innerHTML}`:"";
+  const old=document.getElementById("receiptModal");if(old)old.remove();
+  const modal=document.createElement("div");modal.id="receiptModal";
+  modal.innerHTML=`<div class="receipt-overlay" onclick="if(event.target===this)this.remove()"><div class="receipt-box" style="max-width:900px"><div class="receipt-head"><h2>బలరాం సంగం</h2><div>History &middot; ${today}</div></div>${body}${mon}<div class="receipt-actions np"><button onclick="window.print()">Print / PDF</button><button class="secondary" onclick="document.getElementById('receiptModal').remove()">మూసివేయండి</button></div></div></div>`;
+  document.body.appendChild(modal);
+}
+function dueRender(){
+  if(!ADM)return;
+  const mi=el("dueM");if(!mi.value)mi.value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"}).slice(0,7);
+  const mo=mi.value,t={l:0,s:0,i:0,f:0,p:0,g:0};
+  S.e.filter(e=>e.mo===mo).forEach(e=>{if(e.title){t.g+=+e.s||0}else{t.l+=+e.l||0;t.s+=+e.s||0;t.i+=+e.i||0;t.f+=+e.f||0;t.p+=+e.loanPaid||0}});
+  el("dtL").textContent=M(t.l);el("dtP").textContent=M(t.p);el("dtS").textContent=M(t.s);el("dtI").textContent=M(t.i);el("dtF").textContent=M(t.f);
+  const c={s:0,l:0,p:0,i:0,f:0};S.e.filter(e=>e.mo<=mo).forEach(e=>{c.s+=+e.s||0;c.l+=+e.l||0;c.p+=+e.loanPaid||0;c.i+=+e.i||0;c.f+=+e.f||0});
+  const gp=S.g.filter(x=>x.k!=="dist"&&String(x.d).slice(0,7)<=mo).reduce((a,x)=>a+x.a,0),gd=S.g.filter(x=>x.k==="dist"&&String(x.d).slice(0,7)<=mo).reduce((a,x)=>a+x.a,0);
+  el("cuS").textContent=M(c.s);el("cuL").textContent=M(c.l);el("cuP").textContent=M(c.p);el("cuB").textContent=M(Math.max(0,c.l-c.p));el("cuI").textContent=M(c.i);el("cuF").textContent=M(c.f);
+  el("cuA").textContent=M(R2(c.s+c.i+c.f-gd));const cc=R2(c.s+c.i+c.f+gp+c.p-c.l-gd);el("cuC").textContent=MS(cc);el("cuC").style.color=cc<0?"#b42318":"";
+  el("dtX").innerHTML=t.g?"గ్రూప్ డిపాజిట్/వాటా ఈ నెల: "+M(t.g)+" (పై నెల లెక్కలో కలపలేదు, కింద మొత్తంలో ఉంది)":"";
+  const act=S.m.filter(m=>m.a),rows=[];
+  act.forEach(m=>{
+    const mine=S.e.filter(e=>e.m==m.id),cur=mine.filter(e=>e.mo===mo&&!e.title);
+    const ps=cur.reduce((a,e)=>a+(+e.s||0),0),pi=cur.reduce((a,e)=>a+(+e.i||0),0);
+    let l=0,p=0;mine.filter(e=>e.mo<mo).forEach(e=>{l+=+e.l||0;p+=+e.loanPaid||0});
+    const rem=Math.max(0,l-p),need=[];
+    if(!(ps>0)){const last=mine.filter(e=>!e.title&&+e.s>0&&e.mo<mo).sort((a,b)=>String(b.d).localeCompare(String(a.d)))[0];need.push("పొదుపు"+(last?" (మామూలుగా "+M(last.s)+")":""))}
+    if(rem>0&&!(pi>0))need.push("మిత్తి"+(S.rate?" &asymp; "+M(Math.round(rem*S.rate/100)):"")+" (అప్పు బాకీ "+M(rem)+")");
+    if(need.length)rows.push({n:m.n,p:m.p,need});
+  });
+  rows.sort((a,b)=>String(a.n).localeCompare(String(b.n)));
+  el("dueS").innerHTML=rows.length?"బాకీ ఉన్నవారు <b>"+rows.length+"</b> / "+act.length:"అందరూ కట్టేశారు ✅ ("+act.length+" మంది)";
+  el("dueT").innerHTML=rows.map(r=>`<tr><td>${esc(r.n)}</td><td>${r.p?`<a href="tel:${esc(r.p)}">${esc(r.p)}</a>`:"-"}</td><td>${r.need.join("<br>")}</td></tr>`).join("");
+}
+function dsInfo(){
+  let i=0,f=0;S.e.forEach(e=>{i+=e.i||0;f+=e.f||0});
+  const done=S.g.filter(x=>x.k==="dist"),dd=done.reduce((a,x)=>a+x.a,0),pool=R2(i+f-dd),n=S.m.filter(m=>m.a).length;
+  return {i,f,done,dd,pool,n};
+}
+function dsRender(){
+  const o=dsInfo(),pl=Math.max(0,o.pool);
+  el("dsI").innerHTML=`<div>మొత్తం మిత్తి ${M(o.i)} + ఫైన్ ${M(o.f)}</div><div>&minus; ఇప్పటికే పంచినది ${M(o.dd)}</div><div><b>పంచదగినది ${M(pl)}</b> &middot; సభ్యులు ${o.n} &middot; ఒక్కొక్కరికి &asymp; ${M(o.n?Math.floor(pl/o.n*100)/100:0)}</div>`;
+  if(!el("dsD").value)el("dsD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+  if(!el("dsA").value&&pl>0)el("dsA").value=pl;
+  el("dsL").innerHTML=o.done.slice().reverse().map(x=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef2ef"><span>${esc(x.d)} &middot; ${esc(x.t)}</span><span><b>${M(x.a)}</b> <button class="danger" style="width:auto;padding:5px 10px;margin:0 0 0 6px" onclick="dsUndo(${x.id})">రద్దు చేయి</button></span></div>`).join("");
+}
+async function dsSubmit(){
+  const o=dsInfo(),a=+el("dsA").value,d=el("dsD").value,ro=el("dsR").checked;
+  if(!(a>0))return alert("పంచే మొత్తం ఇవ్వండి");
+  if(a>o.pool+0.001)return alert("పంచదగినది "+M(Math.max(0,o.pool))+" మాత్రమే");
+  if(!d)return alert("తేదీ ఇవ్వండి");
+  if(!ro&&!o.n)return alert("సభ్యులు లేరు");
+  const last=o.done.reduce((m,x)=>String(x.d)>m?String(x.d):m,"");
+  if(last&&Math.abs(new Date(d)-new Date(last))<330*864e5&&!confirm("చివరి పంపిణీ "+last+" న జరిగింది. ఇది ఏడాదికి ఒకసారి మాత్రమే. అయినా కొనసాగాలా?"))return;
+  const msg=ro?M(a)+" ను లెక్కలో మాత్రమే నమోదు చేస్తారు — ఎవరి పొదుపులోనూ ఏమీ చేరదు. సరేనా?":M(a)+" ను "+o.n+" మంది సభ్యులకు సమానంగా పంచి వారి పొదుపులో కలపాలా? (తర్వాత రద్దు చేయవచ్చు)";
+  if(!confirm(msg))return;
+  const {error}=await sb.rpc("distribute_share",{p_total:a,p_date:d,p_record_only:ro});
+  if(error)return alert(/function|schema cache/i.test(error.message)?"schema_v7.sql ఇంకా రన్ చేయలేదు (Supabase → SQL Editor)":error.message);
+  el("dsA").value="";el("dsR").checked=false;await load();render();dsRender();
+  alert(ro?"నమోదు అయ్యింది":"అందరి పొదుపులో కలిసింది");
+}
+async function dsUndo(id){
+  if(!confirm("ఈ పంపిణీని రద్దు చేయాలా? సభ్యుల పొదుపులో కలిపిన ఎంట్రీలు అన్నీ తొలగిపోతాయి."))return;
+  const {error}=await sb.rpc("undo_distribution",{p_id:id});
+  if(error)return alert(error.message);
+  await load();render();dsRender();
+}
+function gpRender(){
+  el("gpWarn").textContent=S.gErr?"schema_v6.sql ఇంకా రన్ చేయలేదు (Supabase → SQL Editor). అప్పటి వరకు చెరువు లాభం సేవ్ కాదు.":"";
+  if(!el("gpD").value)el("gpD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+  el("gpL").innerHTML=S.g.filter(x=>x.k!=="dist").slice().reverse().map(x=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef2ef"><span>${esc(x.d)} &middot; ${esc(x.t)}</span><span><b>${MS(x.a)}</b> <button class="danger" style="width:auto;padding:5px 10px;margin:0 0 0 6px" onclick="gpDel(${x.id})">తొలగించు</button></span></div>`).join("");
+}
+async function gpSubmit(){
+  const t=el("gpT").value.trim()||"చెరువు చేపల లాభం",a=+el("gpA").value,d=el("gpD").value;
+  if(!a)return alert("లాభం మొత్తం ఇవ్వండి");if(!d)return alert("తేదీ ఇవ్వండి");
+  if(!confirm("సేవ్ చేయాలా?\n\n"+d+" | "+t+"\n"+MS(a)))return;
+  const {error}=await sb.from("group_income").insert({income_date:d,title:t,amount:a,created_by:me.id});
+  if(error)return alert(error.message);
+  el("gpT").value=el("gpA").value="";await load();render();gpRender();
+}
+async function gpDel(id){
+  if(!confirm("ఈ చెరువు లాభం ఎంట్రీని తొలగించాలా?"))return;
+  const {error}=await sb.from("group_income").delete().eq("id",id);
+  if(error)return alert(error.message);
+  await load();render();gpRender();
 }
 function money(v){return Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
 </script></body></html>
