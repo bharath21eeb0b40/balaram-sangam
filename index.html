@@ -54,8 +54,9 @@ body.viewer .adm{display:none!important}
 <div class="card"><div class="section-title">ఈ నెల వరకు మొత్తం (అందరూ కలిపి)</div>
 <div class="summary"><div class="stat">మొత్తం పొదుపులు<b id="cuS">₹0</b></div><div class="stat">మొత్తం ఇచ్చిన అప్పు<b id="cuL">₹0</b></div><div class="stat">మొత్తం కట్టిన అప్పు<b id="cuP">₹0</b></div><div class="stat">మిగిలిన అప్పు<b id="cuB">₹0</b></div><div class="stat">మొత్తం మిత్తి<b id="cuI">₹0</b></div><div class="stat">మొత్తం ఫైన్<b id="cuF">₹0</b></div><div class="stat">మొత్తం సంఘం ఖర్చులు<b id="cuE">₹0</b></div><div class="stat">అసలు మొత్తం<b id="cuA">₹0</b></div><div class="stat">సంఘం నిలువ<b id="cuC">₹0</b></div></div>
 <div class="muted" style="margin-top:8px">గ్రూప్ డిపాజిట్లు/వాటా కలిపిన మొత్తాలు. సెలెక్ట్ చేసిన నెల చివరి వరకు.</div></div>
+<div class="card"><div class="section-title">నెలవారీ రసీదు PDF (ఎంచుకున్న నెల)</div><div id="mrL"></div></div>
 <div class="card"><div class="section-title">బాకీ జాబితా (కట్టని వారు)</div><div id="dueS" style="margin-bottom:8px"></div>
-<div style="overflow-x:auto"><table><tr><th>పేరు</th><th>ఫోన్</th><th>బాకీ</th></tr><tbody id="dueT"></tbody></table></div>
+<div style="overflow-x:auto"><table><tr><th>పేరు</th><th>ఫోన్</th><th>బాకీ</th><th></th></tr><tbody id="dueT"></tbody></table></div>
 <button class="np" style="margin-top:10px" onclick="window.print()">Print / PDF</button></div></section>
 <section id="dash" class="page"><div id="nt"></div><div id="bk" class="card" style="display:none;background:#fff4e5;border-color:#f0c36d">⚠️ 7 రోజులుగా Backup తీయలేదు. Settings → Backup Download నొక్కండి. ఫోన్ పోతే/బ్రౌజర్ clear చేస్తే లెక్కలు పోతాయి.</div>
 <div class="summary">
@@ -205,8 +206,9 @@ async function saveEntry(){
   if(editingIndex>=0)r=await sb.from("entries").update(v).eq("id",S.e[editingIndex].id);
   else{v.created_by=me.id;r=await sb.from("entries").insert(v)}
   if(r.error)return alert(r.error.message);
-  editingIndex=-1;el("entryBtn").textContent="లెక్క సేవ్ చేయండి";el("cancelEditBtn").classList.add("hidden");
+  const wasNew=editingIndex<0;editingIndex=-1;el("entryBtn").textContent="లెక్క సేవ్ చేయండి";el("cancelEditBtn").classList.add("hidden");
   await load();render();el("ms").value=member;clearForm();el("date").value=date;el("month").value=date.slice(0,7);
+  if(wasNew){const ni=S.e.findIndex(x=>x.m==member&&x.d===date&&!x.title);if(ni>=0&&confirm("సేవ్ అయింది. రసీదు చూపించి WhatsApp కి పంపాలా?"))receipt(ni)}
 }
 function editEntry(idx){
   const e=S.e[idx];if(!e)return;
@@ -335,6 +337,81 @@ function backup(){
   if(S.g.length){l.push("");l.push("చెరువు లాభం");l.push("date,title,amount,kind");S.g.forEach(x=>l.push([x.d,String(x.t).replace(/,/g," "),x.a,x.k].join(",")))}
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([l.join("\n")],{type:"text/csv"}));a.download="Balaram_Sangam_Export.csv";a.click();
 }
+let DUE=[];
+function waNum(p){let d=String(p||"").replace(/\D/g,"");if(d.length===11&&d[0]==="0")d=d.slice(1);if(d.length===10)d="91"+d;return d.length===12&&d.startsWith("91")?d:""}
+function waSend(num,text){window.open("https://wa.me/"+num+"?text="+encodeURIComponent(text),"_blank")}
+function waReceipt(idx){
+  const e=S.e[idx],m=e&&S.m.find(x=>x.id==e.m);if(!m)return;
+  const num=waNum(m.p);if(!num)return alert(m.n+" ఫోన్ నెంబర్ సరిగా లేదు (10 అంకెలు ఉండాలి). సభ్యుల పేజీలో సరిచేయండి.");
+  const t=totalsForMember(e.m,e.mo),paid=+e.loanPaid||0;
+  const lines=["*బలరాం సంగం - రసీదు*","సభ్యుడు: "+m.n,"తేదీ: "+e.d,"","నెలవారీ పొదుపు: "+M(e.s),"మొత్తం పొదుపులు: "+M(t.s)];
+  if(+e.l)lines.push("తీసుకున్న అప్పు: "+M(e.l));
+  if(paid)lines.push("అప్పు కట్టినది: "+M(paid));
+  lines.push("మిగిలిన అప్పు: "+M(t.remaining));
+  if(+e.i)lines.push("మిత్తి: "+M(e.i));
+  if(+e.f)lines.push("ఫైన్: "+M(e.f));
+  lines.push("","ధన్యవాదాలు 🙏");
+  waSend(num,lines.join("\n"));
+}
+function waDue(i){
+  const r=DUE[i];if(!r)return;const num=waNum(r.p);
+  if(!num)return alert(r.n+" ఫోన్ నెంబర్ సరిగా లేదు");
+  const mo=el("dueM").value;
+  waSend(num,"నమస్కారం "+r.n+" గారు,\nబలరాం సంగం - "+mo+" నెల బాకీ:\n"+r.need.map(x=>"• "+x.replace(/&asymp;/g,"≈")).join("\n")+"\n\nదయచేసి త్వరగా చెల్లించగలరు. ధన్యవాదాలు 🙏");
+}
+let STMT=null;
+function loadLib(src){return new Promise((ok,no)=>{const x=document.createElement("script");x.src=src;x.onload=ok;x.onerror=()=>no(new Error("load "+src));document.head.appendChild(x)})}
+async function pdfLibs(){
+  if(!window.html2canvas)await loadLib("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
+  if(!(window.jspdf&&window.jspdf.jsPDF))await loadLib("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+}
+function stmtHTML(mid,mo){
+  const m=S.m.find(x=>x.id==mid)||{n:"",p:""};
+  const es=S.e.filter(e=>e.m==mid&&e.mo===mo).sort((a,b)=>String(a.d||"").localeCompare(String(b.d||""))||a.id-b.id);
+  const t=totalsForMember(mid,mo);
+  const td="padding:6px 8px;border:1px solid #cfd8d2;text-align:right",tl="padding:6px 8px;border:1px solid #cfd8d2;text-align:left";
+  const rows=es.map(e=>`<tr><td style="${tl}">${esc(e.d||"-")}${e.title?`<br><small>${esc(e.title)}</small>`:""}</td><td style="${td}">${M(e.s)}</td><td style="${td}">${M(e.l)}</td><td style="${td}">${M(e.loanPaid)}</td><td style="${td}">${M(e.i)}</td><td style="${td}">${M(e.f)}</td></tr>`).join("")||`<tr><td style="${tl}" colspan="6">ఈ నెల ఎంట్రీ లేదు</td></tr>`;
+  const th="padding:6px 8px;border:1px solid #cfd8d2;background:#14532d;color:#fff";
+  return `<div style="text-align:center;margin-bottom:12px"><div style="font-size:26px;font-weight:800;color:#14532d">బలరాం సంగం</div><div style="font-size:16px">నెలవారీ రసీదు &middot; ${esc(mo)}</div></div>
+  <div style="font-size:16px;margin-bottom:10px"><b>సభ్యుడు:</b> ${esc(m.n)}<br><b>ఫోన్:</b> ${esc(m.p||"-")}</div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px"><tr><th style="${th}">తేదీ</th><th style="${th}">పొదుపు</th><th style="${th}">అప్పు</th><th style="${th}">కట్టినది</th><th style="${th}">మిత్తి</th><th style="${th}">ఫైన్</th></tr>${rows}</table>
+  <div style="margin-top:14px;font-size:15px;line-height:1.8"><b>ఈ నెల వరకు మొత్తం</b><br>మొత్తం పొదుపులు: <b>${M(t.s)}</b><br>తీసుకున్న అప్పు: ${M(t.l)} &middot; కట్టినది: ${M(t.paid)}<br>మిగిలిన అప్పు: <b>${M(t.remaining)}</b></div>
+  <div style="margin-top:16px;font-size:13px;color:#555">ధన్యవాదాలు 🙏</div>`;
+}
+async function stmtOpen(mid,mo){
+  const m=S.m.find(x=>x.id==mid);if(!m)return;
+  const old=document.getElementById("receiptModal");if(old)old.remove();
+  const modal=document.createElement("div");modal.id="receiptModal";
+  modal.innerHTML=`<div class="receipt-overlay" onclick="if(event.target===this)this.remove()"><div class="receipt-box"><div class="receipt-head"><h2>${esc(m.n)}</h2><div>నెలవారీ PDF &middot; ${esc(mo)}</div></div><p id="stmtMsg">PDF తయారవుతోంది… (మొదటిసారి కొంచెం సమయం పట్టవచ్చు)</p><div class="receipt-actions" id="stmtAct"><button class="secondary" onclick="document.getElementById('receiptModal').remove()">మూసివేయండి</button></div></div></div>`;
+  document.body.appendChild(modal);
+  try{
+    await pdfLibs();
+    const box=document.createElement("div");
+    box.style.cssText="position:fixed;left:-9999px;top:0;width:720px;background:#fff;color:#111;padding:28px;box-sizing:border-box";
+    box.innerHTML=stmtHTML(mid,mo);document.body.appendChild(box);
+    const cv=await html2canvas(box,{scale:2,backgroundColor:"#ffffff"});box.remove();
+    const pdf=new window.jspdf.jsPDF({unit:"pt",format:"a4"});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    let w=pw,h=cv.height*pw/cv.width;if(h>ph){w=w*ph/h;h=ph}
+    pdf.addImage(cv.toDataURL("image/jpeg",0.92),"JPEG",(pw-w)/2,0,w,h);
+    STMT={blob:pdf.output("blob"),name:"Sangam_"+mo+"_"+String(m.p||"").replace(/\D/g,"").slice(-4)+".pdf",m:m,mo:mo};
+    el("stmtMsg").textContent="PDF సిద్ధం ✅ — కింద బటన్ నొక్కి WhatsApp ఎంచుకుని "+m.n+" ని సెలెక్ట్ చేయండి.";
+    el("stmtAct").innerHTML=`<button style="background:#25D366" onclick="stmtShare()">WhatsApp కి PDF పంపు</button><button onclick="stmtDownload()">డౌన్‌లోడ్</button><button class="secondary" onclick="document.getElementById('receiptModal').remove()">మూసివేయండి</button>`;
+  }catch(err){el("stmtMsg").textContent="PDF తయారు కాలేదు: "+(err&&err.message||err)+" (ఇంటర్నెట్ ఉందో చూడండి)"}
+}
+function stmtDownload(){if(!STMT)return;const a=document.createElement("a");a.href=URL.createObjectURL(STMT.blob);a.download=STMT.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+function stmtShare(){
+  if(!STMT)return;
+  const f=new File([STMT.blob],STMT.name,{type:"application/pdf"}),txt="బలరాం సంగం - "+STMT.mo+" నెల రసీదు: "+STMT.m.n;
+  if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:"బలరాం సంగం",text:txt}).catch(()=>{});return}
+  stmtDownload();const num=waNum(STMT.m.p);
+  alert("ఈ బ్రౌజర్ లో నేరుగా PDF పంపడం కుదరదు. PDF డౌన్‌లోడ్ అయింది. WhatsApp చాట్ తెరుస్తాను — అందులో 📎 నొక్కి ఆ PDF ని జతచేయండి.");
+  if(num)waSend(num,txt);
+}
+function mrRender(){
+  const box=el("mrL");if(!box||!ADM)return;const mo=el("dueM").value;
+  box.innerHTML=S.m.filter(m=>m.a).map(m=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eef2ef"><span>${esc(m.n)}</span><button style="width:auto;padding:6px 10px;background:#25D366" onclick="stmtOpen('${m.id}','${mo}')">PDF</button></div>`).join("");
+}
 function receipt(idx){
   const e=S.e[idx],m=S.m.find(x=>x.id==e.m);if(!e||!m)return;
   const t=totalsForMember(e.m,e.mo),loan=+e.l||0,paid=+e.loanPaid||+e.lp||0,remaining=t.remaining;
@@ -343,7 +420,7 @@ function receipt(idx){
     <div class="receipt-head"><h2>బలరాం సంగం</h2><div>లావాదేవీ రసీదు</div></div>
     <p><b>సభ్యుడు:</b> ${esc(m.n)}<br><b>ఫోన్:</b> ${esc(m.p||"-")}<br><b>తేదీ:</b> ${esc(e.d||"-")}<br><b>నెల:</b> ${esc(e.mo||"-")}</p>
     <table class="receipt-table"><tr><td>నెలవారీ పొదుపు</td><td>${M(e.s)}</td></tr><tr><td>మొత్తం పొదుపులు</td><td>${M(t.s)}</td></tr><tr><td>తీసుకున్న అప్పు</td><td>${M(loan)}</td></tr><tr><td>అప్పు కట్టే కాలం</td><td>${e.loanMonths||0} నెలలు</td></tr><tr><td>అప్పు కట్టిన డబ్బులు</td><td>${M(paid)}</td></tr><tr><td>మిగిలిన అప్పు</td><td>${M(remaining)}</td></tr><tr><td>మిత్తి / వడ్డీ</td><td>${M(e.i)}</td></tr><tr><td>ఫైన్</td><td>${M(e.f)}</td></tr></table>
-    <div class="receipt-actions"><button onclick="window.print()">Print / PDF</button><button class="secondary" onclick="document.getElementById('receiptModal').remove()">మూసివేయండి</button></div>
+    <div class="receipt-actions"><button style="background:#25D366" onclick="waReceipt(${idx})">WhatsApp కి పంపు</button><button style="background:#128C7E" onclick="stmtOpen('${e.m}','${e.mo}')">నెలవారీ PDF</button><button onclick="window.print()">Print / PDF</button><button class="secondary" onclick="document.getElementById('receiptModal').remove()">మూసివేయండి</button></div>
   </div></div>`;document.body.appendChild(modal);
 }
 function render(){dash();members();select();entries()}
@@ -408,9 +485,9 @@ function dueRender(){
     if(rem>0&&!(pi>0))need.push("మిత్తి"+(S.rate?" &asymp; "+M(Math.round(rem*S.rate/100)):"")+" (అప్పు బాకీ "+M(rem)+")");
     if(need.length)rows.push({n:m.n,p:m.p,need});
   });
-  rows.sort((a,b)=>String(a.n).localeCompare(String(b.n)));
+  rows.sort((a,b)=>String(a.n).localeCompare(String(b.n)));DUE=rows;mrRender();
   el("dueS").innerHTML=rows.length?"బాకీ ఉన్నవారు <b>"+rows.length+"</b> / "+act.length:"అందరూ కట్టేశారు ✅ ("+act.length+" మంది)";
-  el("dueT").innerHTML=rows.map(r=>`<tr><td>${esc(r.n)}</td><td>${r.p?`<a href="tel:${esc(r.p)}">${esc(r.p)}</a>`:"-"}</td><td>${r.need.join("<br>")}</td></tr>`).join("");
+  el("dueT").innerHTML=rows.map(r=>`<tr><td>${esc(r.n)}</td><td>${r.p?`<a href="tel:${esc(r.p)}">${esc(r.p)}</a>`:"-"}</td><td>${r.need.join("<br>")}</td><td><button style="width:auto;padding:6px 10px;background:#25D366" onclick="waDue(${DUE.indexOf(r)})">WhatsApp</button></td></tr>`).join("");
 }
 function exRender(){
   if(!el("exD").value)el("exD").value=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
